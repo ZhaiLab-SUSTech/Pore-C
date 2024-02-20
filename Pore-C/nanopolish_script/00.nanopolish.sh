@@ -1,0 +1,3 @@
+nanopolish index -d /public/Zhaijx/ALLDATA/Sequencing/nanopore_all/20210913-PORE-C/20210913_0851_MN32189_FAQ92740_6475cc2d/fast5 /public/home/lizw/task/pore_c/fastq/20210913-PORE-C/20210913.fastq.gz -s /public/Zhaijx/ALLDATA/Sequencing/nanopore_all/20210913-PORE-C/20210913_0851_MN32189_FAQ92740_6475cc2d/sequencing_summary_FAQ92740_cdd9c0df.txt
+nanopolish call-methylation -t 64 -r /public/home/lizw/task/pore_c/fastq/20210913-PORE-C/20210913.fastq.gz -b ./formet_sorted_run06.all.bam -g ~/data/IMPORTANT_genome/arabidopsis/tair10/tair10.simplify.fa -q cpg --min-mapping-quality=1 --progress -K 2000 > rep2/rep2_methylation_call.tsv
+#nanopolish index -d rep1/fast5 /public/home/lizw/task/pore_c/fastq/20200319_twolibrary_exp23/20200319.fastq.gz

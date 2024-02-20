@@ -1,0 +1,43 @@
+SAMPLE= ['MAPQ_1_1000','zb_DpnII_run01_TAIR10_unphased.matrix','zb_DpnII_run02_TAIR10_unphased.matrix','zb_DpnII_run03_TAIR10_unphased.matrix','zb_DpnII_run04_TAIR10_unphased.matrix']
+RESOLUTION=[10000,25000,50000,100000,250000,500000]
+
+rule all:
+    input:
+        expand("{sample}_insulation.tsv",sample=SAMPLE),
+        expand("{sample}_{resolution}.cis.vecs.tsv",sample=SAMPLE,resolution=RESOLUTION),
+        expand("{sample}_{resolution}.cis.lam.txt",sample=SAMPLE,resolution=RESOLUTION),
+        expand("{sample}_info.tsv",sample=SAMPLE),
+
+rule insulate:
+    input:
+        "{sample}.mcool"
+    output:
+        "{sample}_insulation.tsv"
+    conda:
+        "env/cooltools.yaml"
+    shell:
+        "cooltools diamond-insulation --window-pixels --append-raw-scores -o {output} {input}::/resolutions/10000 2 3 5 10"
+
+rule compartment:
+    input:
+        "{sample}.mcool"
+    output:
+        "{sample}_{resolution}.cis.vecs.tsv",
+        "{sample}_{resolution}.cis.lam.txt"
+    conda:
+        "env/cooltools.yaml"
+    params:
+        sample_v = lambda wildcard: wildcard.sample,
+        resolution_v = lambda wildcard: wildcard.resolution
+    shell:
+        "cooltools call-compartments -o {params.sample_v}_{params.resolution_v} {input}::/resolutions/{params.resolution_v}"
+
+rule info:
+    input:
+        "{sample}.mcool"
+    output:
+        "{sample}_info.tsv"
+    conda:
+        "env/cooler.yaml"
+    shell:
+        "cooler info -o {output} {input}::/resolutions/10000"

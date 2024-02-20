@@ -1,0 +1,1 @@
+nanopolish call-methylation -t 64 -r /public/home/lizw/task/pore_c/fastq/20210913-PORE-C/20210913.fastq.gz -b /public/home/lizw/task/pore_c/porec_1000_filter_mainchr_result/mapping/sortedDpnII_run06.all.bam -g ~/data/IMPORTANT_genome/arabidopsis/tair10/tair10.simplify.fa > rep2/rep2_methylation_calls.tsv -q cpg --min-mapping-quality=1 --progress

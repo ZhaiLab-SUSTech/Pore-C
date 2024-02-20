@@ -1,0 +1,33 @@
+rule fragment_4dnpairs: #add rescrition fragment sites in .pair
+    output:
+        "MAPQ_{MAPQ_filter}_frag.pairsam"
+    input:
+        restric_site = "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/tair10_DpnII_main.txt"      
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    conda:
+        'env/pairix.yaml'
+    threads: 8
+    shell:
+        "fragment_4dnpairs.pl --allow-replacement MAPQ_{params.MAPQ_value}_sorted_dropdu.pairsam MAPQ_{params.MAPQ_value}_frag.pairsam {input.restric_site}"
+
+rule cooler_digest:
+    output:
+        "tair10_DpnII_cooler_digest.bed"
+    conda:
+        "env/cooler.yaml"
+    threads: 8
+    shell:
+        "cooler digest /public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/chromosome_size_main /public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/tair10.simplify.main.fa DpnII -o     tair10_DpnII_cooler_digest.bed"
+
+rule pair_restrict:
+    output:
+        "MAPQ_{MAPQ_filter}_restrict.pairsam"
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    conda:
+        'env/pairsamtools.yaml'
+    threads: 8
+    shell:
+        "pairtools restrict -f tair10_DpnII_cooler_digest.bed -o MAPQ_{params.MAPQ_value}_restrict.pairsam MAPQ_{params.MAPQ_value}_sorted_dropdu.pairsam"
+                                                                                                                                                                        

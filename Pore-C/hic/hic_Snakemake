@@ -1,0 +1,113 @@
+#Snakemake for 4DN_project_hic
+
+configfile:'config.yaml'
+MAPQ_list=config['MAPQ']
+RESO=config['resolution']
+MCOOL_RESO = '1000,2000,5000,10000,25000,50000,100000,250000,500000,1000000,2500000,5000000,10000000'
+
+rule all:
+    input:
+        expand("MAPQ_{MAPQ_filter}_{RESO_set}.mcool",MAPQ_filter=MAPQ_list,RESO_set=RESO),
+
+rule bam:
+    input:
+        ref = config['ref'],
+        fastq1 = config['fastq1'],
+        fastq2 = config['fastq2'],
+    output: 
+        'DpnII_hic.bam'
+    threads: 30 
+    shell:
+        'bwa mem -SP5M -t {threads} {input.ref} {input.fastq1} {input.fastq2} | samtools view -b > {output}'
+
+rule pair_parse:
+    output:
+        "MAPQ_{MAPQ_filter}.pairsam"
+    input: 
+        bam='DpnII_hic.bam',
+        chromsize = "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/chromosome_size_main"
+    conda: 
+        'env/pairsamtools.yaml' 
+    params:
+        MAPQ_value = lambda wildcards: wildcards.MAPQ_filter
+    threads: 5
+    shell:
+        'pairsamtools parse --min-mapq {params.MAPQ_value} {input.bam} -c {input.chromsize} >  MAPQ_{params.MAPQ_value}.pairsam'
+
+rule pair_sort:
+    input:
+        'MAPQ_{MAPQ_filter}.pairsam'
+    output:
+        'sorted_MAPQ_{MAPQ_filter}.pairsam'
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    conda:
+        'env/pairsamtools.yaml'
+    threads: 8
+    shell:
+        'pairtools sort MAPQ_{params.MAPQ_value}.pairsam -o sorted_MAPQ_{params.MAPQ_value}.pairsam'
+
+rule pair_dropdu: #this step only keep UU UR RU 
+    input:
+        'sorted_MAPQ_{MAPQ_filter}.pairsam'
+    output:
+        "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam"
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    conda:
+        'env/pairsamtools.yaml'
+    threads: 8
+    shell:
+        "pairtools dedup -o sorted_dropdu_MAPQ_{params.MAPQ_value}.pairsam sorted_MAPQ_{params.MAPQ_value}.pairsam"
+
+rule bgzip:
+    input:
+        "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam"
+    output:
+        "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam.gz"
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    threads: 1
+    shell:
+        "bgzip sorted_dropdu_MAPQ_{params.MAPQ_value}.pairsam"
+
+rule pairix:
+    input:
+        "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam.gz"
+    output:
+        "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam.gz.px2"
+    conda:
+        "env/pairix.yaml"
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter
+    shell:
+        "pairix -f -p pairs sorted_dropdu_MAPQ_{params.MAPQ_value}.pairsam.gz"
+        
+rule cooler:
+    output:
+        "MAPQ_{MAPQ_filter}_{RESO_set}.cool"
+    input:
+        chromsize = "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/chromosome_size_main",
+        pairsam = "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam.gz",
+        px = "sorted_dropdu_MAPQ_{MAPQ_filter}.pairsam.gz.px2"
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter,
+        reso = lambda wildcard: wildcard.RESO_set
+    conda:
+        'env/cooler.yaml'
+    threads: 1
+    shell:
+        "cooler cload pairix {input.chromsize}:{params.reso} sorted_dropdu_MAPQ_{params.MAPQ_value}.pairsam.gz MAPQ_{params.MAPQ_value}_{params.reso}.cool"
+
+rule balance:
+    output:
+        "MAPQ_{MAPQ_filter}_{RESO_set}.mcool"
+    input:
+        "MAPQ_{MAPQ_filter}_{RESO_set}.cool"
+    conda:
+        'env/cooler.yaml'
+    params:
+        MAPQ_value = lambda wildcard: wildcard.MAPQ_filter,
+        reso = lambda wildcard: wildcard.RESO_set
+    shell:
+        "cooler zoomify -r {MCOOL_RESO} --balance --balance-args --convergence-policy=store_nan --balance-args --max-iters=10000 -o MAPQ_{params.MAPQ_value}_{params.reso}.mcool MAPQ_{params.MAPQ_value}_{params.reso}.cool"

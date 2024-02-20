@@ -1,0 +1,24 @@
+import pandas as pd
+beddf = pd.read_csv('./kee/bedlist.tsv',header=None,names=['name'])
+bedlist = list(beddf['name'])
+
+rule all:
+    input:
+        expand('kee_out_dir/{anchor_bed}_anchor_valuecount.csv',anchor_bed = bedlist)
+
+rule longc:
+    input:
+        align_merge_part = '../DpnII_run08.order_2_merge_part.parquet',
+        singleton = '../DpnII_run08.order_2_sorted_singleton_fornormailize.parquet',
+        region = '/public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/all_chr.bed'
+    output:
+        'kee_out_dir/{anchor_bed}_anchor_valuecount.csv'
+    params:
+        anchorbed = lambda wildcards: wildcards.anchor_bed,
+        bedfolder = './kee'
+        
+    shell:
+       '''
+       python /public/home/lizw/task/pore_c/tools/porecscripts/v2.13/porecplot_draw.py --align_merge_part {input.align_merge_part} --keepall {input.singleton} --region {input.region} --anchor {params.bedfolder}/{params.anchorbed}.bed --prefix kee_out_dir/{params.anchorbed} --plotkind bar --binsize 500000 --format png --anchormode and3 --anchor_stat --plotkind bar --clusterheat --calculate raw --step_sample 1
+       find ./kee_out_dir -not -name '*anchor_valuecount.csv' -exec rm {{}} \;
+       '''

@@ -1,0 +1,1 @@
+nanopolish call-methylation -t 64 -r /public/home/lizw/task/pore_c/fastq/20200319_twolibrary_exp23/20200319.fastq.gz -b formet_sorted_run07.all.bam -g ~/data/IMPORTANT_genome/arabidopsis/tair10/tair10.simplify.fa -q cpg --min-mapping-quality=1 --progress -K 2000 > rep1/rep1_methylation_calls.tsv 

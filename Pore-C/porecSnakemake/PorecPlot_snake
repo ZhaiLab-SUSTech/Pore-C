@@ -1,0 +1,110 @@
+'''
+v8 PorecPlot_snake modified by lizw, 2021-04-20
+
+Version description:
+Changes in cooresponding scripts
+v8/porecplot_draw.py v7/porecplot_draw_func.py
+
+1.horizontal broader
+2.fix environment with environment.yaml
+
+Changes in snakemake file:
+1.pre_out_path can be used
+
+'''
+
+import pandas as pd	
+from pathlib import PurePath
+configfile:"config.yaml"
+
+bg_tracks = config['bg_tracks']
+site_tracks = config['site_tracks']
+script_dir = config['script_dir']
+pre_out_path = config['pre_out_path']
+experiment_file = config['experiment']
+drawing_file = config['drawing_run']
+order = config['order_filter']
+draw_out_path = config['draw_out_path']
+order = config['order_filter']
+
+pre_prefix_df = pd.read_csv(experiment_file,sep='\t',comment='#')
+pre_prefix_df['Pre_prefix'] = pre_prefix_df.apply(lambda x : '{}_{}'.format(x[1],x[0]),axis=1)
+PRE_PREFIX = list(pre_prefix_df['Pre_prefix'])
+
+drawing_run = pd.read_csv(drawing_file,sep="\t",comment='#')
+drawing_run['Name'] = drawing_run.apply(lambda x : '{}_binsize{}_ylim{}_{}_{}_{}'.format(x[0],x[3],x[4],x[5],x[6],x[7]), axis=1)
+drawing_run.index = drawing_run['Name']
+NAME=list(drawing_run['Name'])
+
+OUTPATH_PRE_PREFIX = [f'{pre_out_path}/{x}' for x in PRE_PREFIX]
+MERGE_PREFIX = [f'{x}--{y}' for x in PRE_PREFIX for y in NAME]
+
+def expand_col(df,merge_prefix,column):
+    index = merge_prefix.split('--')[1]
+    exp_col = df.loc[index,column]
+    return exp_col
+    
+def expand_region(df,merge_prefix,kind):
+    setdir = expand_col(df,merge_prefix,'DrawInputPath')
+    draw_name = expand_col(df,merge_prefix,'DrawName')
+    if kind == 'region':
+        exp_reg = PurePath(setdir,f'{draw_name}.region.bed')
+    elif kind == 'anchor':
+        exp_reg = PurePath(setdir,f'{draw_name}.anchor.bed')
+    return exp_reg
+
+def pre_out(pre_out_path,merge_prefix,kind,order):
+    pre_prefix = merge_prefix.split("--")[0]
+    if kind == 'all':
+        file_name = f'{pre_out_path}/{pre_prefix}_sorted_orderall_fornormailize.csv'
+    elif kind == 'merge_part':
+        file_name = f'{pre_out_path}/{pre_prefix}_order{order}_merge_part.csv'
+    elif kind == 'prefix':
+        file_name = f'{pre_out_path}/{pre_prefix}'
+    return file_name
+
+rule all:
+    input:
+        expand('{merge_prefix}.report', merge_prefix = MERGE_PREFIX),
+        expand('{outpath_pre_prefix}_sorted_orderall_fornormailize.csv',outpath_pre_prefix = OUTPATH_PRE_PREFIX)
+
+rule porec_pre:
+    params:
+        prefix = '{outpath_pre_prefix}',
+        align_dir = config['align_dir'],
+        order = order
+    output: 
+        '{outpath_pre_prefix}_sorted_orderall_fornormailize.csv',
+        expand('{{outpath_pre_prefix}}_order{order}_merge_part.csv',order=order)
+
+    shell:
+        '''
+        python {script_dir}/porecplot_pre.py --align_dir {params.align_dir} --prefix {params.prefix} --basicplots --order {params.order}
+        
+        '''
+
+rule porec_draw:
+    input:
+        align_merge_part = lambda wildcards: pre_out(pre_out_path,wildcards.merge_prefix,'merge_part',order),
+        keepall = lambda wildcards: pre_out(pre_out_path,wildcards.merge_prefix,'all',order),
+    output:
+        '{merge_prefix}.report'
+    params:
+        region = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Region'),
+        anchor = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Anchor'),
+        mark = config['markfile'],
+        genemodel = config['genemodel'] if config['genemodel'] != None else '',
+        binsize = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Binsize'),
+        calculate = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Calculate'),
+        plotkind = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Plotkind'),
+        anchormode = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'AnchorMode'),
+        bedgrapths = [d['file'] for d in bg_tracks if d['file'] != None],
+        bg_labels = [d['label'] for d in bg_tracks],
+        bg_ylims = [d['ylim'] for d in bg_tracks],
+        prefix = '{merge_prefix}',
+        format = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Format'),
+        ylim = lambda wildcards: expand_col(drawing_run,wildcards.merge_prefix,'Ylim'), 
+    shell:
+        '''
+    python {script_dir}/porecplot_draw.py --align_merge_part {input.align_merge_part} --keepall {input.keepall} --region {params.region} --anchor {params.anchor} --anchormode {params.anchormode} --calculate {params.calculate} --binsize {params.binsize} --ylim {params.ylim} --mark {params.mark} --plotkind {params.plotkind} --bedgraphs {params.bedgrapths} --bg_labels {params.bg_labels} --genemodel {params.genemodel} --prefix {params.prefix} --format {params.format} --clusterheat
+        '''

@@ -1,0 +1,44 @@
+experiment: "/public/home/lizw/software/Pore-C-Snakemake_10Feb/config/basecalls.tsv"
+order_filter: 2
+genemodel: "~/data/IMPORTANT_genome/arabidopsis/Araport11/bed/simplify_araport11.representative.gene_model.bed"
+markfile: "/public/home/lizw/task/pore_c/exp23_merge/result2/align_table/kee/normal_mark.txt"
+align_dir: "/public/home/lizw/task/pore_c/exp23_merge/result4/new_pipeline_result/align_table"
+script_dir: "/public/home/lizw/task/pore_c/tools/porecscripts/v8"
+pre_out_path: "/public/home/lizw/task/pore_c/exp23_merge/result4/porecplot"
+drawing_run: "./drawing_run.tsv"
+draw_out_path: "."
+
+bg_tracks:
+    -
+        id: 1
+        file: "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/modification/H3K4me1-SRX648277.bw.bg"
+        label: "H3K4me1"
+        ylim: 
+    -
+        id: 2
+        file: "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/modification/H3K36me3-SRX1518744.bw.bg"
+        label: "H3K36me3"
+        ylim: 
+    -
+        id: 3
+        file: "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/modification/H3K4me2-DRX066771.bw.bg"
+        label: "H3K4me2"
+        ylim:
+    -
+        id: 4
+        file: "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/modification/H3K27me3-SRX648279.bw.bg"
+        label: "H3K27me3"
+        ylim: 
+    -
+        id: 5
+        file: "/public/home/lizw/data/IMPORTANT_genome/arabidopsis/modification/Pol2-SRX1772333.bw.bg"
+        label: "Polii"
+        ylim:
+
+site_tracks:
+    -
+        id:
+        file:
+        label:
+        ylim:
+

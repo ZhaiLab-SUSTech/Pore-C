@@ -1,0 +1,24 @@
+import pandas as pd
+beddf = pd.read_csv('./bed/bedlist_sample.csv',header=None,names=['name'])
+bedlist = list(beddf['name'])
+
+rule all:
+    input:
+        expand('{anchor_bed}.png',anchor_bed = bedlist)
+
+rule porec_draw:
+    input:
+        align_merge_part = '../DpnII_run08.order_5_merge_part.parquet',
+        singleton = '../DpnII_run08.order_5_sorted_singleton_fornormailize.parquet',
+        region = '/public/home/lizw/data/IMPORTANT_genome/arabidopsis/tair10/all_chr.bed'
+    output:
+        '{anchor_bed}.png'
+    params:
+        anchorbed = lambda wildcards: wildcards.anchor_bed,
+        bedfolder = './bed'
+        
+    shell:
+       '''
+       python /public/home/lizw/task/pore_c/tools/porecscripts/v2.11/porecplot_draw.py --align_merge_part {input.align_merge_part} --keepall {input.singleton} --region {input.region} --anchor {params.bedfolder}/{params.anchorbed}.bed --anchormode or --prefix {params.anchorbed} --draw --plotkind bar --clusterheat --calculate raw --binsize 500000 --format png --mark ./normal_mark.txt --step_sample 0.4
+       rm {params.anchorbed}*.csv 
+       '''

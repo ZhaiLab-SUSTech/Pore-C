@@ -1,0 +1,9 @@
+#hic data analysis pipeline
+https://data.4dnucleome.org/resources/data-analysis/hi_c-processing-pipeline
+https://pairsamtools.readthedocs.io/en/latest/parsing.html
+
+#data sources
+Genome-wide analysis of local chromatin packing in Arabidopsis thaliana; Congmao Wang et al.,2015
+
+#note
+/public/home/lizw/task/pore_c/DpnII_hic2/4DN_cool/MAPQ_1_1000.cool have been balanced
